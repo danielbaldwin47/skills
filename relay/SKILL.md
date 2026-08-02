@@ -6,24 +6,39 @@ disable-model-invocation: true
 
 # Relay
 
-One leg of a ticket chain. Arguments: `<upstream> <downstream> [interval]` — two ticket references (issue number or URL) and an optional poll interval, default 30m (intervals above 60m poll at 60m — that is the wakeup ceiling).
+One leg of a ticket chain. Arguments: `<upstream> <downstream> [interval]` — two ticket references (issue number or URL) and an optional poll interval, default 1m. The interval is a shell `sleep` argument (`5m`, `2h`), so any duration works; polling is shell-side and costs nothing but a `gh` call, so frequent is fine.
 
 Ticket state is the bus between sessions: your gate is the upstream ticket closing, and the next runner's gate is yours.
 
-## 1. Wait for the baton
+## 1. Arm the tripwire
 
-Check the gate immediately, then re-check every interval (ScheduleWakeup, `delaySeconds` = interval, prompt: `relay: re-check the gate`).
+Check the gate once, immediately — already open means straight to step 2. Otherwise arm the tripwire and go idle: a Monitor (`persistent: true`) running the loop below. The shell does the waiting; the session wakes exactly once, on the line the loop emits. Never poll from the session itself — every model-side wake pays the whole accumulated context again just to find the gate shut.
 
-**Gate open** = upstream ticket closed AND (its PR merged, OR an open PR exists to stack on).
+```bash
+start=$(date +%s)
+while :; do
+  s=$(gh issue view <upstream> --json state,stateReason \
+        -q '.state + " " + (.stateReason // "")' 2>/dev/null || echo RETRY)
+  case "$s" in
+    CLOSED\ NOT_PLANNED) echo "gate dead: upstream closed as not-planned"; exit 0 ;;
+    CLOSED*)             echo "gate open: upstream closed"; exit 0 ;;
+  esac
+  [ $(( $(date +%s) - start )) -ge 43200 ] && { echo "gate expired: still shut after 12h"; exit 0; }
+  sleep <interval>
+done
+```
 
-- Closed as not-planned, or closed with no PR at all: stop and report the upstream state. Never implement on a dead foundation.
-- 24 polls with the gate still shut: stop and write `needs input:` with the upstream state — ticket status, last comment, PR status.
+The loop emits a line on every terminal state, so silence always means still-waiting. The 12h expiry is wall-clock, independent of the interval. Step 1 is complete when the tripwire is armed and its one line has been interpreted:
+
+- `gate open` — check the upstream ticket's PR with one `gh` call: merged, or open to stack on, means run your leg. Closed with no PR at all: stop and report the upstream state — never implement on a dead foundation.
+- `gate dead` — stop and report the upstream state.
+- `gate expired` — stop and write `needs input:` with the upstream state — ticket status, last comment, PR status.
 
 ## 2. Run your leg
 
 1. Enter a worktree.
 2. Pick the base: upstream PR merged → branch from the default branch. Unmerged → branch from the upstream PR's head, and set your PR's base to that branch (stacked PR).
-3. `/implement <downstream>`
+3. Run the `implement` skill on `<downstream>` — the personal one at `~/.claude/skills/implement`, invoked by bare name. Not `mattpocock-skills:implement`, which is user-invoked and unreachable from here.
 4. Push the branch; open a draft PR, noting the stacked base in the body if there is one.
 
 ## 3. Pass the baton
