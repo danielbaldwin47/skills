@@ -32,7 +32,7 @@ Fewer fit tickets than requested → proceed with fewer, and say so in the plan.
 
 ## 3. Check the plan
 
-Spot-check the table: no two tickets running in parallel may share a working-set path outside `hubFiles`. Overlap found → chain them. The rule fails toward serialization — one night slower — never toward a conflict.
+Spot-check the table: no two tickets running in parallel may share a working-set path outside `hubFiles`. Overlap found → chain them. The rule fails toward serialization — one night slower — never toward a conflict. The check is complete when every parallel pair has been compared and shares no non-hub path.
 
 Chains land as stacked PRs, so chain order is land order. The scout's head choice (smallest working set first, by default) stands unless the table itself contradicts it.
 

@@ -16,7 +16,7 @@ You may merge, background agent or not. The user durably pre-authorized these me
 
 From dispatch: the branch list and the chain topology. Invoked by hand with no arguments, derive both yourself: open PRs whose head branch matches `issue-*`; a PR whose *base* is another `issue-*` branch is a stacked chain leg, in that order.
 
-From `.claude/dispatch.json`: `testCommand`, `hubFiles`, `mergeMethod`. Missing or malformed → stop and say what is missing — same discipline as dispatch's preflight.
+From `.claude/dispatch.json`: `testCommand` and `hubFiles`. Missing or malformed → stop and say what is missing — same discipline as dispatch's preflight. `mergeMethod` is optional, default `merge`.
 
 ## Order
 
@@ -26,9 +26,9 @@ Strictly sequential — each rebase must see the previous merge. Within a chain,
 
 1. **Retarget if stacked.** Base branch just merged → retarget the PR's base to the default branch.
 2. **Rebase** onto the current default branch — which now includes everything landed earlier this run.
-3. **Resolve conflicts.** Confined to `hubFiles` paths → keep-both: both sides are registration lines, keep them both, using the `resolving-merge-conflicts` skill. Any conflict outside `hubFiles` → stop this PR: leave it open, comment, move to the next.
+3. **Resolve conflicts.** Confined to `hubFiles` paths → keep-both: both sides are registration lines, keep them both, using the `mattpocock-skills:resolving-merge-conflicts` skill. Any conflict outside `hubFiles` → stop this PR: leave it open, comment, move to the next.
 4. **Test.** Run `testCommand` on the rebased branch.
-5. **Merge** (method: `mergeMethod`) iff all three hold — the triple gate:
+5. **Merge** — mark the draft ready (`gh pr ready`), then merge (method: `mergeMethod`) — iff all three hold, the triple gate:
    - tests green after the rebase
    - the PR body's `Review:` line reads `clean` — a missing line fails this gate
    - every conflict encountered was hub-file keep-both

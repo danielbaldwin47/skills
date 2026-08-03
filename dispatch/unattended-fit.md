@@ -18,7 +18,7 @@ Check the ticket's acceptance criteria against the `seams` declared in `.claude/
 - Any criterion no declared seam can observe → awake work; name the missing observation.
 - Repo declares no seams → skip this check and judge by the tell alone.
 
-## Worked examples (forest-shell, 2026-08-02)
+## Worked examples (from forest-shell)
 
 - **#97 bar blur** — needs a machine where Hyprland blur is known to render; no seam sees composited pixels. Awake.
 - **#98 multi-monitor** — needs two physical outputs attached. Awake.
