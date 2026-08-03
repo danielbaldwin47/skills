@@ -12,15 +12,14 @@ Ticket state is the bus between sessions: your gate is the upstream ticket closi
 
 ## 1. Preflight the baton, then arm the tripwire
 
-Before anything else, verify the downstream ticket with one `gh issue view
-<downstream> --json state,title` call. It must exist and be OPEN. Missing or
-already closed means the arguments are wrong or the leg already ran — stop and
-report both tickets' states with `needs input:`. Never substitute a different
-ticket or implement anything else: the arguments name the one leg this session
-is allowed to run, and a bad argument is the human's to fix, not yours to
-route around.
+Preflight first: one `gh issue view <downstream> --json state,title` call.
+The arguments name the one leg this session runs, and the downstream ticket
+must exist and be OPEN — anything else grounds the leg: stop and report both
+tickets' states with `needs input:`, and leave the fix to the human. A
+grounded leg stays grounded; substituting another ticket is the one forbidden
+move.
 
-Then check the gate once, immediately — already open means straight to step 2. Otherwise arm the tripwire and go idle: a Monitor (`persistent: true`) running the loop below. The shell does the waiting; the session wakes exactly once, on the line the loop emits. Never poll from the session itself — every model-side wake pays the whole accumulated context again just to find the gate shut.
+Preflight passed, check the gate once, immediately — already open means straight to step 2. Otherwise arm the tripwire and go idle: a Monitor (`persistent: true`) running the loop below. The shell does the waiting; the session wakes exactly once, on the line the loop emits. Never poll from the session itself — every model-side wake pays the whole accumulated context again just to find the gate shut.
 
 ```bash
 start=$(date +%s)
@@ -36,9 +35,9 @@ while :; do
 done
 ```
 
-The loop emits a line on every terminal state, so silence always means still-waiting. The 12h expiry is wall-clock, independent of the interval. Step 1 is complete when the tripwire is armed and its one line has been interpreted:
+The loop emits a line on every terminal state, so silence always means still-waiting. The 12h expiry is wall-clock, independent of the interval. Step 1 is complete when the preflight has passed and the tripwire's one line has been interpreted:
 
-- `gate open` — two `gh` calls before moving. First re-check the downstream ticket is still OPEN: hours have passed, and a closed downstream means the leg was run elsewhere — stop and report, don't run it twice. Then check the upstream ticket's PR: merged, or open to stack on, means run your leg. Closed with no PR at all: stop and report the upstream state — never implement on a dead foundation.
+- `gate open` — two `gh` calls before moving. First re-check the downstream ticket is still OPEN: hours have passed, and a closed downstream means the baton already passed — stop and report. Then check the upstream ticket's PR: merged, or open to stack on, means run your leg. Closed with no PR at all: stop and report the upstream state — never implement on a dead foundation.
 - `gate dead` — stop and report the upstream state.
 - `gate expired` — stop and write `needs input:` with the upstream state — ticket status, last comment, PR status.
 
