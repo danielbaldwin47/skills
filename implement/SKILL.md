@@ -1,6 +1,7 @@
 ---
 name: implement
-description: "Implement a piece of work from a spec or set of tickets. Use when the user wants a ticket, issue, or spec built out, says \"implement <ticket>\", hands over a spec to turn into code, or when another skill needs to build the work a ticket describes."
+description: "Implement a piece of work from a spec or set of tickets."
+disable-model-invocation: true
 ---
 
 Implement the work described by the user in the spec or tickets.
