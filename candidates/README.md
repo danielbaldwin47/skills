@@ -223,18 +223,31 @@ Two skills came up and were consciously postponed:
 ## Prerequisite edits outside these specs
 
 No frontmatter flip on relay — it stays user-invoked; dispatch's chain legs
-reach it by path pointer. Small text edits instead:
+reach it by path pointer. Small text edits instead, in three classes:
 
-- `relay/SKILL.md` step 3: legs adopt clause 3 of the leg-prompt contract —
-  write the `Review:` verdict line into the PR body ("complete" already
-  requires the review to have run; this records its outcome where the lander
-  reads it).
-- `relay/SKILL.md` step 3: "merging is the human's morning job" is stale —
-  landing is downstream's job (the lander's, on dispatch nights).
-- `relay/SKILL.md` step 2 invokes `implement` by bare skill name; change to a
-  path pointer (`Read ~/.claude/skills/implement/SKILL.md and follow it`),
-  because of the next edit.
+**Forced** (relay is broken without them once `implement` flips):
+
 - `implement/SKILL.md` gains `disable-model-invocation: true`. The personal
   copy existed only to be reachable from agents; path pointers retire that
   reason, and its description — the fattest in the suite — leaves every
   session on every repo. Interactive use is `/implement` by name, unchanged.
+- `relay/SKILL.md` step 2 invokes `implement` by bare skill name and relies on
+  it being model-invocable; change to a path pointer
+  (`Read ~/.claude/skills/implement/SKILL.md and follow it`).
+
+**Justified — coherence, not correctness** (apply when dispatch is built, so
+the pointer target exists):
+
+- `relay/SKILL.md` steps 2–3 point at `dispatch/leg-contract.md`: the worktree
+  takes the contract name (`issue-<N>` for the downstream ticket) and the PR
+  body gets the `Review:` verdict line. Clause 2 — closing the ticket — is
+  relay's step 3 already. On dispatch nights the leg *prompt* carries all
+  three clauses, so this edit changes nothing there; it exists so hand-wired
+  relay chains also produce PRs a later `/lander` can see (it derives its list
+  from `issue-*` branches) and gate on.
+- `relay/SKILL.md` step 3: "merging is the human's morning job" is stale —
+  landing is downstream's job (the lander's, on dispatch nights).
+
+**Not justified, examined and left alone:** relay's gate mechanics, preflight,
+and the 12h expiry. The expiry outlasting the batch tripwire is fine — a late
+chain leg's PR simply lands on the next `/lander` run.
