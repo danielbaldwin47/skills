@@ -43,14 +43,14 @@ The loop emits a line on every terminal state, so silence always means still-wai
 
 ## 2. Run your leg
 
-1. Enter a worktree.
+1. Enter a worktree, on a branch named `issue-<N>` for the downstream ticket — the name `~/.claude/skills/dispatch/leg-contract.md` dictates, so a later `/lander` can find the PR.
 2. Pick the base: upstream PR merged → branch from the default branch. Unmerged → branch from the upstream PR's head, and set your PR's base to that branch (stacked PR).
-3. Run the `implement` skill on `<downstream>` — the personal one at `~/.claude/skills/implement`, invoked by bare name. Not `mattpocock-skills:implement`, which is user-invoked and unreachable from here.
-4. Push the branch; open a draft PR, noting the stacked base in the body if there is one.
+3. Read `~/.claude/skills/implement/SKILL.md` and follow it for `<downstream>`.
+4. Push the branch; open a draft PR, noting the stacked base in the body if there is one. After `/code-review`, add the `Review:` verdict line to the PR body (leg-contract, clause 3).
 
 ## 3. Pass the baton
 
-Complete = your PR is open, tests are green, review is done. Merge is not required — merging is the human's morning job.
+Complete = your PR is open, tests are green, review is done. Merge is not required — landing is downstream's job: the lander's on dispatch nights, the human's otherwise.
 
 - Complete → close the downstream ticket with a comment linking your PR (and its stacked base). This close IS the pass: the next runner gates on it. A leg run without the pass loses the whole race.
 - Blockers that need the human's decision → leave the ticket open, comment the blockers on it, end with `needs input:`.
