@@ -16,7 +16,7 @@ You may merge, background agent or not. The user durably pre-authorized these me
 
 From dispatch: the branch list and the chain topology. Invoked by hand with no arguments, derive both yourself: open PRs whose head branch matches `issue-*`; a PR whose *base* is another `issue-*` branch is a stacked chain leg, in that order.
 
-From `.claude/dispatch.json`: `testCommand` and `hubFiles`. Missing or malformed → stop and say what is missing — same discipline as dispatch's preflight. `mergeMethod` is optional, default `merge`.
+From `.claude/dispatch.json`: `testCommand` and `hubFiles`. Missing or malformed → stop and say what is missing — same discipline as dispatch's preflight. `mergeMethod` is optional, default `merge`. The batch's intent — plan table, chains, branch list, per-leg progress — is the newest run record in `~/.claude/dispatch-runs/`; read it first if present.
 
 ## Order
 
@@ -32,7 +32,13 @@ Strictly sequential — each rebase must see the previous merge. Within a chain,
    - tests green after the rebase
    - the PR body's `Review:` line reads `clean` — a missing line fails this gate
    - every conflict encountered was hub-file keep-both
-6. **Otherwise hold**: PR stays open with a comment naming exactly which gate failed. The ticket stays closed — it was closed because the PR exists, which is still true.
+6. **Verify the merge reached the default branch** — immediately, before touching the next PR:
+   `git fetch origin && git merge-base --is-ancestor <headRefOid> origin/<default>`. A merged PR whose
+   commits are not ancestors of the default branch merged into a stale or just-consumed base (the #179/#200
+   trap: #200 merged into its parent fifteen seconds after the parent itself merged, and the work silently
+   vanished from main). On failure: reland the head branch as a fresh PR against the default branch this run,
+   and say so in the report.
+7. **Otherwise hold**: PR stays open with a comment naming exactly which gate failed. The ticket stays closed — it was closed because the PR exists, which is still true.
 
 **Chain cascade:** a held head holds every downstream leg of its chain, reason "base held" — their diffs contain the head's commits, and merging one would smuggle the held change into main. Skip their rebase entirely; comment and move on.
 

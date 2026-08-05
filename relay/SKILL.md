@@ -30,12 +30,12 @@ while :; do
     CLOSED\ NOT_PLANNED) echo "gate dead: upstream closed as not-planned"; exit 0 ;;
     CLOSED*)             echo "gate open: upstream closed"; exit 0 ;;
   esac
-  [ $(( $(date +%s) - start )) -ge 43200 ] && { echo "gate expired: still shut after 12h"; exit 0; }
+  [ $(( $(date +%s) - start )) -ge <expiry> ] && { echo "gate expired: still shut after <expiry>s"; exit 0; }
   sleep <interval>
 done
 ```
 
-The loop emits a line on every terminal state, so silence always means still-waiting. The 12h expiry is wall-clock, independent of the interval. Step 1 is complete when the preflight has passed and the tripwire's one line has been interpreted:
+`<expiry>`: when the repo carries `.claude/dispatch.json`, use `legTimeoutBase` × 2 in seconds (the upstream leg has its own timeout; twice that is generous) — a leg that outlives the batch it belongs to only reports against a lander that already ran. No dispatch config → 43200 (12h). The expiry is wall-clock, independent of the interval. The loop emits a line on every terminal state, so silence always means still-waiting. Step 1 is complete when the preflight has passed and the tripwire's one line has been interpreted:
 
 - `gate open` — two `gh` calls before moving. First re-check the downstream ticket is still OPEN: hours have passed, and a closed downstream means the baton already passed — stop and report. Then check the upstream ticket's PR: merged, or open to stack on, means run your leg. Closed with no PR at all: stop and report the upstream state — never implement on a dead foundation.
 - `gate dead` — stop and report the upstream state.

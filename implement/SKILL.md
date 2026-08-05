@@ -13,3 +13,15 @@ Run typechecking regularly, single test files regularly, and the full test suite
 Once done, use /code-review to review the work.
 
 Commit your work to the current branch.
+
+When the work comes from a ticket `#N`, finishing means shipping — these four
+are part of the work, not courtesies (they restate the dispatch leg contract;
+that contract remains the authority when both are in play):
+
+1. Branch named exactly `issue-<N>` — rename before pushing if the worktree
+   started on another name.
+2. Push the branch and open a draft PR.
+3. Add one line to the PR body after /code-review: `Review: clean` if nothing
+   was held, else `Review: findings held`.
+4. Close ticket #N with a comment linking the PR — downstream work gates on
+   the close.

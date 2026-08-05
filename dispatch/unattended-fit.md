@@ -21,7 +21,7 @@ Check the ticket's acceptance criteria against the `seams` declared in `.claude/
 ## Worked examples (from forest-shell)
 
 - **#97 bar blur** — needs a machine where Hyprland blur is known to render; no seam sees composited pixels. Awake.
-- **#98 multi-monitor** — needs two physical outputs attached. Awake.
+- **#98 multi-monitor** — fit, *once the nested seam is declared*: `tools/nested-session.sh` drives headless outputs (`NESTED_MONITORS`, `nested_output_add`/`remove`), so per-screen geometry and hotplug are log assertions, no physical monitor involved. This ticket was wrongly bounced to awake when `dispatch.json` listed only `tests` and `capture` — the cautionary example for keeping the seam list complete, which dispatch's preflight now checks.
 - **#96 lock failure path** — needs an enrolled fingerprint and a human watching the shake animation. Awake.
 - A layout, parsing, or policy ticket checkable at `tests/` or a capture harness — fit.
 
