@@ -12,6 +12,8 @@ A PR merges if and only if:
 
 A PR is merged only when it is *boring*. Green, reviewed clean, conflicting only where conflicts are meaningless. Everything else waits for a person — which is the point: the morning cost being removed is triage, and triage is only removed if the trivial cases are gone when you wake up.
 
+After every merge the lander immediately verifies the commits actually reached the default branch (`git merge-base --is-ancestor`). A PR can read MERGED while its work never lands — the #179/#200 trap, a stacked PR merged into a stale or just-consumed base — and on that failure the head branch is relanded as a fresh PR against the default branch, named in the report. On a dispatch night the batch's intent — plan table, chains, branch list — comes from the newest run record in `~/.claude/dispatch-runs/`.
+
 ## Why it merges at all
 
 Background agents are ordinarily told never to merge, and without an explicit grant a cautious agent at 3am refuses and guts the skill. So the grant lives in the skill text, versioned and auditable: the user durably pre-authorized these merges by invoking `/dispatch` against a repo carrying `.claude/dispatch.json`, and the triple gate *is* the safety review. A PR that fails the gate is held, never argued through it. And in every mode, at every autonomy level: nothing merges without green tests.

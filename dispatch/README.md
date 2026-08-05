@@ -39,6 +39,8 @@ Requirements:
 | `hubFiles` | yes | Registration-point paths (globs allowed) where parallel work is *expected* to conflict trivially — both sides append a line, resolution is keep-both. Overlap here doesn't count as a collision. Can be `[]`. |
 | `defaultBatch` | yes | Batch size when `/dispatch` is run bare. Counts tickets, not parallel tracks. |
 | `legTimeoutBase` | yes | Time budget for one leg (e.g. `"2.5h"`). The batch timeout is this × the deepest chain length. |
+| `legModel` | no | Model for implementation legs (default `opus`). Every leg launches with it set explicitly rather than inheriting the lead's model. |
+| `maxStackDepth` | no | Longest allowed chain (default `3`). A longer chain is cut at the cap; the tail tickets drop from the batch and are named in the plan. |
 | `worktreeDir` | no | Where worktrees are expected to live. `git worktree list` remains authoritative. |
 | `mergeMethod` | no | `merge` (default), `squash`, or `rebase` — passed to the lander's `gh pr merge`. |
 | `seams` | no | Declared verification harnesses (`name`, `command`, `covers`). Used by the scout and by [awake](../awake/README.md) to judge whether a ticket's acceptance criteria are observable without a human. Omitted → fit is judged by ticket text alone. |
@@ -57,11 +59,11 @@ Tickets always carry `#` — that's what makes a bare integer unambiguously a co
 
 ## How a night runs
 
-1. **Preflight** — load the config, confirm a clean tree on the default branch.
+1. **Preflight** — load the config, check every seam runner present in the repo appears in some seam's `command` (a missing seam makes the scout silently bounce every ticket only that seam can verify), confirm a clean tree on the default branch.
 2. **Scout** — one subagent reads every candidate's body and returns one table: predicted working set (subtree granularity), unattended-fit verdict, group. Nothing else in the run ever reads a ticket body.
 3. **Check the plan** — no two parallel tickets may share a working-set path outside `hubFiles`. Overlap → chain them.
-4. **Launch** — print the plan and launch in the same turn. Singletons and chain heads run [implement](../implement/README.md); chain legs 2..n run [relay](../relay/README.md), which waits for the upstream ticket to close and stacks its PR on the upstream branch. Every agent's prompt ends with the three clauses of [leg-contract.md](leg-contract.md).
-5. **Wait** — one persistent shell loop ([tripwire.md](tripwire.md)) greps `gh pr list` for the expected `issue-<N>` branches. It emits one line — `batch complete` or `batch expired` — and either way the run proceeds: a partial night lands what it has.
+4. **Launch** — print the plan and launch in the same turn. Singletons and chain heads run [implement](../implement/README.md); chain legs 2..n run [relay](../relay/README.md), which waits for the upstream ticket to close and stacks its PR on the upstream branch. Every agent's prompt ends with the three clauses of [leg-contract.md](leg-contract.md), and every leg launches with `model: <legModel>` set explicitly. Then the run record is written — `~/.claude/dispatch-runs/<UTC-timestamp>.json`, holding the plan table, chains, branch list, and per-leg model — and updated at each later step; it is the only artifact that survives an interrupted run, and the morning `/lander` reads it to know what the batch intended.
+5. **Wait** — one persistent shell loop ([tripwire.md](tripwire.md)) greps `gh pr list` for the expected `issue-<N>` branches (forgiving the known `worktree-issue-<N>-slug` drift). It emits one line — `batch complete` or `batch expired` — and either way the run proceeds: a partial night lands what it has.
 6. **Hand off** — spawn the lander with the branch list and chain topology; relay its one-screen report verbatim.
 
 ## Design notes

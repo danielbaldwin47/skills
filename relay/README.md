@@ -4,7 +4,7 @@ One leg of a ticket chain. `/relay #A #B` watches upstream ticket `#A`; when it 
 
 ## How the waiting works
 
-Shell-side, not model-side. A persistent monitor loop polls `gh issue view` and emits exactly one line — `gate open`, `gate dead` (upstream closed as not-planned), or `gate expired` (12h wall-clock) — and the session wakes exactly once, on that line. Polling from the session itself would pay the whole accumulated context on every wake just to find the gate still shut.
+Shell-side, not model-side. A persistent monitor loop polls `gh issue view` and emits exactly one line — `gate open`, `gate dead` (upstream closed as not-planned), or `gate expired` (wall-clock: `legTimeoutBase` × 2 when the repo carries `.claude/dispatch.json`, 12h otherwise) — and the session wakes exactly once, on that line. Polling from the session itself would pay the whole accumulated context on every wake just to find the gate still shut.
 
 ## Preflight, and the one forbidden move
 
