@@ -46,7 +46,7 @@ Print the plan and launch in the same turn — the plan costs nothing to show, a
 
 Every agent's prompt ends with the three clauses of [leg-contract.md](leg-contract.md), verbatim. Every leg launches with `model: <legModel>` set explicitly — legs do the implementation, the one place model choice matters most; never leave them inheriting whatever the lead happens to run.
 
-- **Singleton, and every chain head:** one background agent, `isolation: worktree`, prompted: read `~/.claude/skills/implement/SKILL.md` and follow it for `#N` — plus the contract.
+- **Singleton, and every chain head:** one background agent, `isolation: worktree`, prompted: read `~/.claude/skills/implement-relay/SKILL.md` and follow it for `#N` — plus the contract.
 - **Chain legs 2..n:** one background agent each, prompted: read `~/.claude/skills/relay/SKILL.md` and follow it for `#prev #next` — plus the contract. Relay waits shell-side for `#prev` to close, then stacks its PR on `#prev`'s.
 
 One ticket, one agent, its own worktree and PR — never two tickets through one agent, whatever it saves.

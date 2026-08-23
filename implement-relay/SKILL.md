@@ -1,6 +1,6 @@
 ---
-name: implement
-description: "Implement a piece of work from a spec or set of tickets."
+name: implement-relay
+description: "Implement a piece of work based on a spec or set of tickets."
 disable-model-invocation: true
 ---
 
@@ -23,5 +23,6 @@ that contract remains the authority when both are in play):
 2. Push the branch and open a draft PR.
 3. Add one line to the PR body after /code-review: `Review: clean` if nothing
    was held, else `Review: findings held`.
-4. Close ticket #N with a comment linking the PR — downstream work gates on
-   the close.
+4. When the repo's CLAUDE.md grants **self-landing**, land the PR per the
+   grant's gates first. Then close ticket #N with a comment linking the PR —
+   downstream work gates on the close, so the close always comes last.
