@@ -11,7 +11,7 @@ Walk a human through settling a ticket that needs eyes, hands, or hardware.
 ## Arguments
 
 - `/awake #97` — walk this ticket's verification
-- `/awake` — derive the backlog and pick one: open tickets (`gh issue list --state open --limit 100`, filtered to `ticketLabel` when `.claude/dispatch.json` declares one) judged against `~/.claude/skills/dispatch/unattended-fit.md` (read it — it is the same file dispatch's scout uses, so the two skills cannot disagree about what counts as awake work). The backlog is re-derived every time; no list is maintained anywhere.
+- `/awake` — derive the backlog and pick one: open tickets (`gh issue list --state open --limit 100`, filtered to `ticketLabel` when `.claude/dispatch.json` declares one) judged against `~/.claude/skills/awake/unattended-fit.md` (read it). The backlog is re-derived every time; no list is maintained anywhere.
 
 First check either way: if the ticket is actually reachable from a seam declared in `.claude/dispatch.json`, say so and stop — a harness already covers it, and it belongs to dispatch, not a manual pass. No config, or no seams declared → skip this check.
 
