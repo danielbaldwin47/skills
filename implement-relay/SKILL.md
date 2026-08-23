@@ -25,9 +25,25 @@ that contract remains the authority when both are in play):
    was held, else `Review: findings held`.
 4. When the repo's CLAUDE.md grants **self-landing**, land the PR per the
    grant's gates first. Then close ticket #N with a comment linking the PR —
-   downstream work gates on the close, so the close always comes last.
+   post the comment *before* `gh issue close`: a squash-merge's auto-close
+   races the close call and can drop the comment. The close always comes
+   last — downstream work gates on it.
 
-Three cost rules, learned the expensive way:
+Cost rules, each learned the expensive way:
+
+- **End the turn while your agents run.** Background agents (reviews, advisors)
+  re-invoke you when they finish; a yield/sleep loop while they work is the
+  most expensive known mistake — 123 idle turns once re-billed a 300k context
+  into 40M+ cache-read tokens. Resumed without a completion notification →
+  read the agent's task output file rather than waiting again.
+- **Targeted tests while iterating, the full gate once per push.** Single test
+  files during the loop; suite + lint + typecheck once before each push. After
+  fixing a review finding, re-run the reviewer's own repro before pushing —
+  fix commits have twice introduced regressions the next check caught.
+- **Probe the reference implementation.** When the real binary or library a
+  spec describes is installed, settle behavior disputes by probing it — a
+  five-call compiled probe once refuted a review finding and convicted three
+  shipped bugs; re-reading docs settles nothing the docs got wrong.
 
 - **One full-diff review per leg.** Sequence the tail: tests and CI green
   first, then `/code-review` over the whole diff, fix the findings, then
