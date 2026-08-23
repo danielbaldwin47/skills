@@ -34,7 +34,7 @@ Order is the chain: chain order = close order = land order. Sequencing and paral
 
 **One ticket, one agent.** Colliding work is chained, never collapsed into one agent running two tickets back to back — doubling an agent's context is the more expensive price.
 
-**Ticket size bounds leg context.** A leg pays for everything its ticket bundles: one package or subsystem per ticket is the size that lands near the ~120k context target. The 404k outlier leg traced straight to a ticket carrying three packages and a 33k spec — the fix was at ticket-writing time, not in the leg.
+**Ticket size bounds leg context.** A leg pays for everything its ticket bundles: one package or subsystem per ticket is the size that lands near the ~120k context target. The 404k outlier leg traced straight to a ticket carrying three packages and a 33k spec — the fix was at ticket-writing time, not in the leg. A later 7-leg run confirmed it at scale: every ticket's bare implement core (reading + edits + tests, before any relay or review machinery) ran 1.4–3.5x the 120k target, making ticket sizing the primary overrun cause across the whole run — workflow overhead and waste were secondary. Audit legs against that decomposition before blaming the workflow.
 
 | File | Read by |
 |---|---|

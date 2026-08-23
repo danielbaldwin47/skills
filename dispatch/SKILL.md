@@ -65,13 +65,20 @@ done
 On each `ticket closed: #N` event: SendMessage the leg gated on #N — its gate is open, this message is its tripwire line, verify state itself and run. Duplicate wakes are safe (relay re-checks everything), so send without wondering whether the leg's own monitor got there first. `chain complete` or `chain expired` means proceed to the report — an expired chain reports what it has. Per-agent completion notifications arrive first and they are traps: on one, do nothing — no summary, no `TaskStop`, no peeking at PRs — and go back to idle. Two exceptions, both one-message repairs that keep the chain alive without reading any transcript:
 
 - **status `failed` / a watchdog stall** ("no progress") → SendMessage the same agent: name what killed it, tell it to check `git status` and its last commit first, then continue the leg. The resume costs the leg a few k tokens; a dead leg costs the whole chain.
-- **a leg that stopped while claiming to wait** (its result says "waiting", the notification says no live background children) → SendMessage: nothing exists to wake it; re-check the awaited state now and continue, arming a real watch if one is genuinely needed.
+- **a leg that stopped while claiming to wait** (its result says "waiting", the notification says no live background children) → SendMessage: nothing exists to wake it; re-check the awaited state now and continue, arming a real watch if one is genuinely needed. Two caveats from a live case: the harness's live-children count sees only *agent* children, so a background Bash task may still be running mute — background Bash never wakes a background session, which is usually exactly why the leg stalled; and an empty output file from such a task is pipeline buffering, not proof it never ran — the nudge should say "check your background task's process state and output before re-running anything".
 
 Everything else: back to idle. Only the tripwire's line means proceed.
 
 ## 4. Report
 
-Gather cheap state only: per ticket, `gh issue view <n> --json state` and `gh pr list --head issue-<n> --state all --json number,state,isDraft`. One screen, three lists, nothing else:
+Gather cheap state only: per ticket, `gh issue view <n> --json state` and the ticket's PRs by branch *prefix* — a leg may ship a follow-up PR on `issue-<n>-<suffix>` (contract clause 1), which an exact `--head issue-<n>` match misses:
+
+```sh
+gh pr list --state all --json number,state,isDraft,headRefName \
+  -q '[.[] | select(.headRefName | startswith("issue-<n>"))]'
+```
+
+One screen, three lists, nothing else:
 
 - **landed** — ticket closed, PR merged
 - **held** — ticket closed, PR open (a self-landing gate held it, or no grant) — the PR comment names why
