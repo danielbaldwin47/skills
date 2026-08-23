@@ -4,7 +4,7 @@ One leg of a ticket chain. `/relay #A #B` watches upstream ticket `#A`; when it 
 
 ## How the waiting works
 
-Shell-side, not model-side. A persistent monitor loop polls `gh issue view` and emits exactly one line — `gate open`, `gate dead` (upstream closed as not-planned), or `gate expired` (wall-clock: `legTimeoutBase` × 2 when the repo carries `.claude/dispatch.json`, 12h otherwise) — and the session wakes exactly once, on that line. Polling from the session itself would pay the whole accumulated context on every wake just to find the gate still shut.
+Shell-side, not model-side. A persistent monitor loop polls `gh issue view` and emits exactly one line — `gate open`, `gate dead` (upstream closed as not-planned), or `gate expired` (wall-clock, 12h by default) — and the session wakes exactly once, on that line. Polling from the session itself would pay the whole accumulated context on every wake just to find the gate still shut.
 
 ## Preflight, and the one forbidden move
 
@@ -12,4 +12,4 @@ Before arming anything, relay verifies the downstream ticket exists and is open.
 
 ## Where it fits in the suite
 
-[Dispatch](../dispatch/README.md) uses relay for chain legs 2..n: tickets whose working sets collide are serialized into a chain, the head runs [implement-relay](../implement-relay/README.md) directly, and each subsequent leg is a relay gated on its predecessor's ticket. The [leg contract](../dispatch/leg-contract.md) makes the chain repo-independent — clause 2 guarantees every leg closes its ticket, which is exactly the event relay gates on. Relay also works hand-wired, outside any dispatch night; it follows the same contract (branch `issue-<N>`, draft PR, `Review:` line) so a later `/lander` can find and land its PR either way. Merging depends on the repo: a CLAUDE.md **self-landing** grant means the leg lands its own PR behind the grant's gates before closing the ticket; without a grant, landing belongs downstream — the lander's on dispatch nights, the human's otherwise.
+[Dispatch](../dispatch/README.md) is the batch form: `/dispatch #a #b #c` launches the head on [implement-relay](../implement-relay/README.md) and each subsequent ticket as a relay gated on its predecessor — one turn instead of one `/relay` per pair. The [leg contract](../dispatch/leg-contract.md) makes the chain repo-independent — clause 2 guarantees every leg closes its ticket, which is exactly the event relay gates on. Relay also works hand-wired; it follows the same contract (branch `issue-<N>`, draft PR, `Review:` line) either way. Merging depends on the repo: a CLAUDE.md **self-landing** grant means the leg lands its own PR behind the grant's gates before closing the ticket; without a grant, the PR stays open for the human.

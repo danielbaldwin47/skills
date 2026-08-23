@@ -1,5 +1,7 @@
 # lander
 
+> **Superseded** in repos whose CLAUDE.md grants self-landing: every leg lands its own PR behind the grant's gates, so no separate landing pass exists to run. Kept for repos without the grant, and as the by-hand move for landing a fixed held PR.
+
 The landing crew. Takes the batch's `issue-*` PRs and merges the ones that deserve it — strictly in sequence: retarget if stacked, rebase onto the current default branch, resolve hub-file conflicts keep-both, run the test command, merge if the triple gate holds. Anything with a real decision in it is held open with a comment naming exactly which gate failed. Reached two ways: spawned by [dispatch](../dispatch/README.md) at the end of a batch, or `/lander` by hand — the morning move when a batch expired overnight or a held PR has been fixed.
 
 ## The triple gate

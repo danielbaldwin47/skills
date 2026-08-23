@@ -1,85 +1,40 @@
 # dispatch
 
-The bedtime command. `/dispatch` picks a batch of open tickets that a background agent can genuinely close, groups them so their branches won't merge-conflict, launches one overnight agent per ticket — each in its own worktree, on its own branch, opening its own PR — waits for the batch on a single shell-side tripwire, then hands the finished PRs to the [lander](../lander/README.md) to rebase, test, and merge. You invoke it, read the plan it prints, and walk away. In the morning: a merged default branch plus a short list of what actually needed a person.
+`/dispatch #12 #15 #9` (or `/dispatch #12-#16` for a range) launches a relay chain over the named tickets: the first runs [implement-relay](../implement-relay/README.md) directly, each later ticket runs [relay](../relay/README.md) gated on its predecessor's close — exactly what running `/relay <prev> <next>` once per pair builds by hand, launched in one turn. Each leg is its own background agent, worktree, `issue-<N>` branch, and PR, and every prompt carries the three clauses of [leg-contract.md](leg-contract.md).
+
+In a repo whose CLAUDE.md grants **self-landing**, legs merge their own PRs behind the grant's gates and route human leftovers per the repo's **needs-from-you** policy. The morning read is two things: the inbox, and dispatch's closing report (landed / held / stalled). Without the grant the chain still runs — PRs stay open for the human, tickets still close, downstream legs still fire.
 
 ## Setup
 
-Dispatch is repo-agnostic; every repo-specific fact comes from `.claude/dispatch.json` at the root of the repo you run it in. No config, no dispatch — the skill stops and says what's missing rather than guessing. A dispatcher that guesses wrong spends a night of compute on the wrong work; one that stops costs a minute of setup.
-
-Requirements:
-
-- Tickets tracked as GitHub issues, with the `gh` CLI authenticated.
-- A `.claude/dispatch.json` at the repo root:
-
-```json
-{
-  "ticketLabel": "ready-for-agent",
-  "testCommand": "tests/run.sh",
-  "hubFiles": [
-    "Core/ServiceInit.qml",
-    "Core/SettingsSchema.qml",
-    "CLAUDE.md",
-    "tools/*.sh"
-  ],
-  "worktreeDir": ".claude/worktrees",
-  "defaultBatch": 5,
-  "mergeMethod": "merge",
-  "legTimeoutBase": "2.5h",
-  "seams": [
-    { "name": "tests", "command": "tests/run.sh", "covers": "decisions: policy, formatting, parsing, merging, migration, thresholds" },
-    { "name": "capture", "command": "tools/capture-harness.sh", "covers": "client-side pictures: layout, colour, opacity compositing" }
-  ]
-}
-```
-
-| Field | Required | Meaning |
-|---|---|---|
-| `ticketLabel` | yes | Issue label that marks candidate tickets. |
-| `testCommand` | yes | The command that must be green before anything merges. |
-| `hubFiles` | yes | Registration-point paths (globs allowed) where parallel work is *expected* to conflict trivially — both sides append a line, resolution is keep-both. Overlap here doesn't count as a collision. Can be `[]`. |
-| `defaultBatch` | yes | Batch size when `/dispatch` is run bare. Counts tickets, not parallel tracks. |
-| `legTimeoutBase` | yes | Time budget for one leg (e.g. `"2.5h"`). The batch timeout is this × the deepest chain length. |
-| `legModel` | no | Model for implementation legs (default `opus`). Every leg launches with it set explicitly rather than inheriting the lead's model. |
-| `maxStackDepth` | no | Longest allowed chain (default `3`). A longer chain is cut at the cap; the tail tickets drop from the batch and are named in the plan. |
-| `worktreeDir` | no | Where worktrees are expected to live. `git worktree list` remains authoritative. |
-| `mergeMethod` | no | `merge` (default), `squash`, or `rebase` — passed to the lander's `gh pr merge`. |
-| `seams` | no | Declared verification harnesses (`name`, `command`, `covers`). Used by the scout and by [awake](../awake/README.md) to judge whether a ticket's acceptance criteria are observable without a human. Omitted → fit is judged by ticket text alone. |
+None. Tickets as GitHub issues, `gh` authenticated — that's the whole requirement. Repo-specific behavior (landing authority, leftover routing) comes from the repo's CLAUDE.md, so dispatch itself stays repo-agnostic. `.claude/dispatch.json` is no longer read.
 
 ## Usage
 
 ```
-/dispatch              # default batch, anything unattended-fit
-/dispatch 4            # bare integer = batch size
-/dispatch settings     # free text = scope filter, matched semantically by the scout
-/dispatch settings 4   # both
-/dispatch #72 #55 #56  # exactly these tickets
+/dispatch #12 #15 #9   # chain in exactly this order
+/dispatch #12-#16      # range, ascending (also #12-16)
 ```
 
-Tickets always carry `#` — that's what makes a bare integer unambiguously a count. An explicit `#` list bypasses selection but **not** fit judgement or collision grouping: naming a ticket says which work, not that a background agent can close it, and never that it can run in parallel.
+Order is the chain: chain order = close order = land order. Sequencing and parallelism are the human's calls, made at ticket-writing time — `/to-tickets` emits tickets with blocking edges, and those edges are the chain. Parallel tracks over non-overlapping work are separate `/dispatch` invocations. An explicit ticket in the wrong state stops the run; a closed ticket inside a range is dropped as already done.
 
-## How a night runs
+## How a run goes
 
-1. **Preflight** — load the config, check every seam runner present in the repo appears in some seam's `command` (a missing seam makes the scout silently bounce every ticket only that seam can verify), confirm a clean tree on the default branch.
-2. **Scout** — one subagent reads every candidate's body and returns one table: predicted working set (subtree granularity), unattended-fit verdict, group. Nothing else in the run ever reads a ticket body.
-3. **Check the plan** — no two parallel tickets may share a working-set path outside `hubFiles`. Overlap → chain them.
-4. **Launch** — print the plan and launch in the same turn. Singletons and chain heads run [implement-relay](../implement-relay/README.md); chain legs 2..n run [relay](../relay/README.md), which waits for the upstream ticket to close and stacks its PR on the upstream branch. Every agent's prompt ends with the three clauses of [leg-contract.md](leg-contract.md), and every leg launches with `model: <legModel>` set explicitly. Then the run record is written — `~/.claude/dispatch-runs/<UTC-timestamp>.json`, holding the plan table, chains, branch list, and per-leg model — and updated at each later step; it is the only artifact that survives an interrupted run, and the morning `/lander` reads it to know what the batch intended.
-5. **Wait** — one persistent shell loop ([tripwire.md](tripwire.md)) greps `gh pr list` for the expected `issue-<N>` branches (forgiving the known `worktree-issue-<N>-slug` drift). It emits one line — `batch complete` or `batch expired` — and either way the run proceeds: a partial night lands what it has.
-6. **Hand off** — spawn the lander with the branch list and chain topology; relay its one-screen report verbatim.
+1. **Preflight** — one `gh issue view` per ticket confirms it exists and is open; the repo's CLAUDE.md is checked for the self-landing grant.
+2. **Launch** — plan printed and all agents launched in the same turn. The head gets a worktree at launch; relay legs make their own after their gate opens, branching from what upstream actually landed.
+3. **Wait** — one persistent shell loop watches the last ticket in the chain; its close is the whole chain done. One wake, however long the night.
+4. **Report** — landed / held / stalled per ticket, plus the pointer to the needs-from-you inbox.
 
 ## Design notes
 
-**The lead's context is a hard budget.** Over a whole night the orchestrating session accumulates exactly: one plan table, one tripwire line, one lander report. It reads no ticket bodies, no diffs, no conflict hunks, no agent transcripts — every bulky read belongs to a subagent that returns a summary. This is why the scout is one subagent rather than inline, why waiting is a shell loop rather than reacting to per-agent notifications (N wakes, each re-paying the whole accumulated context), and why landing is delegated entirely.
+**The lead's context is a hard budget.** Over a whole run the orchestrating session accumulates one plan, one tripwire line, one report — no ticket bodies, no diffs, no agent transcripts. Waiting is shell-side because reacting to per-agent notifications pays the whole accumulated context N times.
 
-**The collision rule fails toward serialization.** Two tickets collide when their predicted working sets overlap anywhere except a hub file — no allowlist of "collision-relevant" paths. An earlier design had one, and paths in neither list overlapped silently, launching parallel work with unaccepted conflict risk. The current rule's failure mode is one night slower, never a conflict that holds a PR. Hub files are the sole exception because counting them collapses nearly every pair into one serial chain and destroys the parallelism the skill exists to find; the trade is explicit — hub conflicts are accepted at dispatch time and resolved keep-both at land time.
+**No scout, no collision grouping.** The old dispatch predicted working sets and serialized colliding tickets itself. The new baseline moves that judgement to where the information actually is: the human (and `/to-tickets`) decide order and parallelism when the tickets are written. Dispatch executes the order it is given — one chain per invocation, serial by construction, so collisions inside a run are impossible.
 
-**One ticket, one agent, ~120k context.** Colliding tickets are never collapsed into a single agent running both back to back, even though that would trivially avoid the conflict — it would double that agent's context. Chains cost the lander an ordering constraint instead; that's the cheaper price.
+**No lander, no awake.** Self-landing makes every leg its own lander — merge gates travel with the leg, and a gate-held PR waits for a human with a comment naming the gate. The needs-from-you inbox absorbs what awake existed to surface: work needing eyes, hands, or hardware becomes an inbox item (or a `ready-for-human` ticket, which files one), never a separate skill's backlog. Both skills remain in the folder for repos without the grant, marked superseded.
 
-**The folder is disclosure-shaped.** Each file loads into exactly the context that needs it:
+**One ticket, one agent.** Colliding work is chained, never collapsed into one agent running two tickets back to back — doubling an agent's context is the more expensive price.
 
 | File | Read by |
 |---|---|
 | `SKILL.md` | the lead |
-| [scout.md](scout.md) | the scout subagent |
 | [leg-contract.md](leg-contract.md) | every launched agent (appended to its prompt) |
-| [unattended-fit.md](unattended-fit.md) | the scout and `awake` — one file, so they can't drift apart |
-| [tripwire.md](tripwire.md) | the lead, at step 5 only |

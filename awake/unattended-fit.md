@@ -1,6 +1,6 @@
 # Unattended fit
 
-Shared judgement — dispatch's scout and `awake` both read this file, so they cannot drift apart on what counts as awake work.
+The judgement `awake` applies when deriving its backlog.
 
 A ticket is **unattended-fit** when a background agent can close it end to end: implement, verify at a declared seam, open the PR, close the ticket — no human eyes, hands, or hardware in the loop.
 

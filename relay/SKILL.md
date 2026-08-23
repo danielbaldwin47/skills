@@ -35,7 +35,7 @@ while :; do
 done
 ```
 
-`<expiry>`: when the repo carries `.claude/dispatch.json`, use `legTimeoutBase` × 2 in seconds (the upstream leg has its own timeout; twice that is generous) — a leg that outlives the batch it belongs to only reports against a lander that already ran. No dispatch config → 43200 (12h). The expiry is wall-clock, independent of the interval. The loop emits a line on every terminal state, so silence always means still-waiting. Step 1 is complete when the preflight has passed and the tripwire's one line has been interpreted:
+`<expiry>`: 43200 (12h), unless the invocation names another. The expiry is wall-clock, independent of the interval. The loop emits a line on every terminal state, so silence always means still-waiting. Step 1 is complete when the preflight has passed and the tripwire's one line has been interpreted:
 
 - `gate open` — two `gh` calls before moving. First re-check the downstream ticket is still OPEN: hours have passed, and a closed downstream means the baton already passed — stop and report. Then check the upstream ticket's PR: merged, or open to stack on, means run your leg. Closed with no PR at all: stop and report the upstream state — never implement on a dead foundation.
 - `gate dead` — stop and report the upstream state.
@@ -43,7 +43,7 @@ done
 
 ## 2. Run your leg
 
-1. Enter a worktree, on a branch named `issue-<N>` for the downstream ticket — the name `~/.claude/skills/dispatch/leg-contract.md` dictates, so a later `/lander` can find the PR.
+1. Enter a worktree, on a branch named `issue-<N>` for the downstream ticket — the name `~/.claude/skills/dispatch/leg-contract.md` dictates, so the dispatch tripwire and downstream legs can find your work.
 2. Pick the base: upstream PR merged → branch from the default branch. Unmerged → branch from the upstream PR's head, and set your PR's base to that branch (stacked PR).
 3. Read `~/.claude/skills/implement-relay/SKILL.md` and follow it for `<downstream>`.
 4. Push the branch; open a draft PR, noting the stacked base in the body if there is one. After `/code-review`, add the `Review:` verdict line to the PR body (leg-contract, clause 3).
@@ -53,6 +53,6 @@ done
 Complete = your PR is open, tests are green, review is done.
 
 - Complete, and the repo's CLAUDE.md grants **self-landing** → land your own PR per the grant's gates before closing the ticket. The grant is durable pre-authorization: merge without asking, background agent or not. A PR the gates hold stays open with a comment naming the held gate — the ticket still closes below, and the next leg stacks on your head branch.
-- No grant → leave the PR open; landing is downstream's job: the lander's on dispatch nights, the human's otherwise.
+- No grant → leave the PR open; landing is the human's job downstream.
 - Either way: close the downstream ticket with a comment linking your PR (and its stacked base, if unmerged). This close IS the pass: the next runner gates on it. A leg run without the pass loses the whole race.
 - Blockers that need the human's decision: when the repo's CLAUDE.md carries a **needs-from-you** policy, follow it first — a blocker with a defensible default ships default-and-log, and the leg still completes and passes the baton. Only a blocker with no defensible default grounds the leg: leave the ticket open, comment the blockers on it, end with `needs input:`.
