@@ -45,7 +45,7 @@ done
 
 1. Enter a worktree, on a branch named `issue-<N>` for the downstream ticket — the name `~/.claude/skills/dispatch/leg-contract.md` dictates, so a later `/lander` can find the PR.
 2. Pick the base: upstream PR merged → branch from the default branch. Unmerged → branch from the upstream PR's head, and set your PR's base to that branch (stacked PR).
-3. Read `~/.claude/skills/implement/SKILL.md` and follow it for `<downstream>`.
+3. Read `~/.claude/skills/implement-relay/SKILL.md` and follow it for `<downstream>`.
 4. Push the branch; open a draft PR, noting the stacked base in the body if there is one. After `/code-review`, add the `Review:` verdict line to the PR body (leg-contract, clause 3).
 
 ## 3. Land, then pass the baton

@@ -20,7 +20,7 @@ Background agents are ordinarily told never to merge, and without an explicit gr
 
 ## Why it doesn't re-review
 
-Every leg already ran `/code-review` on a full-context read of its own change — [implement](../implement/README.md) ends with it — and clause 3 of the [leg contract](../dispatch/leg-contract.md) records the verdict as one machine-readable line in the PR body. The lander reads that line and nothing else. A second review from a fresh agent on a rebased diff would be both weaker and redundant; a missing line simply holds the PR, which fails safe.
+Every leg already ran `/code-review` on a full-context read of its own change — [implement-relay](../implement-relay/README.md) ends with it — and clause 3 of the [leg contract](../dispatch/leg-contract.md) records the verdict as one machine-readable line in the PR body. The lander reads that line and nothing else. A second review from a fresh agent on a rebased diff would be both weaker and redundant; a missing line simply holds the PR, which fails safe.
 
 ## Chains
 
