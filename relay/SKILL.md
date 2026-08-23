@@ -48,9 +48,11 @@ done
 3. Read `~/.claude/skills/implement/SKILL.md` and follow it for `<downstream>`.
 4. Push the branch; open a draft PR, noting the stacked base in the body if there is one. After `/code-review`, add the `Review:` verdict line to the PR body (leg-contract, clause 3).
 
-## 3. Pass the baton
+## 3. Land, then pass the baton
 
-Complete = your PR is open, tests are green, review is done. Merge is not required — landing is downstream's job: the lander's on dispatch nights, the human's otherwise.
+Complete = your PR is open, tests are green, review is done.
 
-- Complete → close the downstream ticket with a comment linking your PR (and its stacked base). This close IS the pass: the next runner gates on it. A leg run without the pass loses the whole race.
-- Blockers that need the human's decision → leave the ticket open, comment the blockers on it, end with `needs input:`.
+- Complete, and the repo's CLAUDE.md grants **self-landing** → land your own PR per the grant's gates before closing the ticket. The grant is durable pre-authorization: merge without asking, background agent or not. A PR the gates hold stays open with a comment naming the held gate — the ticket still closes below, and the next leg stacks on your head branch.
+- No grant → leave the PR open; landing is downstream's job: the lander's on dispatch nights, the human's otherwise.
+- Either way: close the downstream ticket with a comment linking your PR (and its stacked base, if unmerged). This close IS the pass: the next runner gates on it. A leg run without the pass loses the whole race.
+- Blockers that need the human's decision: when the repo's CLAUDE.md carries a **needs-from-you** policy, follow it first — a blocker with a defensible default ships default-and-log, and the leg still completes and passes the baton. Only a blocker with no defensible default grounds the leg: leave the ticket open, comment the blockers on it, end with `needs input:`.
