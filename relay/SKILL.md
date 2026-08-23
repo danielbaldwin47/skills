@@ -19,7 +19,7 @@ tickets' states with `needs input:`, and leave the fix to the human. A
 grounded leg stays grounded; substituting another ticket is the one forbidden
 move.
 
-Preflight passed, check the gate once, immediately — already open means straight to step 2. Otherwise arm the tripwire and go idle: a Monitor (`persistent: true`) running the loop below. The shell does the waiting; the session wakes exactly once, on the line the loop emits. Never poll from the session itself — every model-side wake pays the whole accumulated context again just to find the gate shut.
+Preflight passed, check the gate once, immediately — already open means straight to step 2. Otherwise arm the tripwire and go idle: a Monitor (`persistent: true`) running the loop below. The shell does the waiting; the session wakes exactly once, on the line the loop emits. Never poll from the session itself — every model-side wake pays the whole accumulated context again just to find the gate shut. Idle means zero further tool calls until the tripwire's line arrives: no capped Bash sleep-loop "just to check" (a second poller defeats the first), and no pre-loading docs, specs, or tickets — all reading happens after the gate opens, where it cannot go stale and the wait has cost nothing.
 
 ```bash
 start=$(date +%s)

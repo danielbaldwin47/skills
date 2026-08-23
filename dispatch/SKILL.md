@@ -57,7 +57,12 @@ while :; do
 done
 ```
 
-Either line means proceed to the report — an expired chain reports what it has. Per-agent completion notifications arrive first and they are traps: on one, do nothing — no summary, no `TaskStop`, no peeking at PRs — and go back to idle. Only the tripwire's line means proceed.
+Either line means proceed to the report — an expired chain reports what it has. Per-agent completion notifications arrive first and they are traps: on one, do nothing — no summary, no `TaskStop`, no peeking at PRs — and go back to idle. Two exceptions, both one-message repairs that keep the chain alive without reading any transcript:
+
+- **status `failed` / a watchdog stall** ("no progress") → SendMessage the same agent: name what killed it, tell it to check `git status` and its last commit first, then continue the leg. The resume costs the leg a few k tokens; a dead leg costs the whole chain.
+- **a leg that stopped while claiming to wait** (its result says "waiting", the notification says no live background children) → SendMessage: nothing exists to wake it; re-check the awaited state now and continue, arming a real watch if one is genuinely needed.
+
+Everything else: back to idle. Only the tripwire's line means proceed.
 
 ## 4. Report
 
