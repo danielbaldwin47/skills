@@ -41,9 +41,11 @@ done
 - `gate dead` — stop and report the upstream state.
 - `gate expired` — stop and write `needs input:` with the upstream state — ticket status, last comment, PR status.
 
+A dispatcher's gate-open message counts as the tripwire line — monitor delivery inside a background session is unreliable, so a dispatched leg's real wake usually arrives by message. On any wake, before acting: verify the upstream state yourself with one `gh` call, read your monitor task's output file to learn what it actually did, and TaskStop it if still running — never assert a task's fate without its output.
+
 ## 2. Run your leg
 
-1. Enter a worktree, on a branch named `issue-<N>` for the downstream ticket — the name `~/.claude/skills/dispatch/leg-contract.md` dictates, so the dispatch tripwire and downstream legs can find your work.
+1. Create your own worktree: `git worktree add <repo-root>/.claude/worktrees/issue-<N> -b issue-<N> <base>` — never EnterWorktree (it fails from a pinned-cwd subagent), and a self-created worktree is one you can also remove at cleanup. The branch name is the one `~/.claude/skills/dispatch/leg-contract.md` dictates, so the dispatch tripwire and downstream legs can find your work.
 2. Pick the base: upstream PR merged → branch from the default branch. Unmerged → branch from the upstream PR's head, and set your PR's base to that branch (stacked PR).
 3. Read `~/.claude/skills/implement-relay/SKILL.md` and follow it for `<downstream>`.
 4. Push the branch; open a draft PR, noting the stacked base in the body if there is one. After `/code-review`, add the `Review:` verdict line to the PR body (leg-contract, clause 3).

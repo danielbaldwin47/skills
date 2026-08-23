@@ -38,26 +38,31 @@ Print the plan — one line per leg, `#prev → #next`, grant status, leg model 
 
 Every agent's prompt ends with the three clauses of [leg-contract.md](leg-contract.md), verbatim.
 
-- **Head:** one background agent, `isolation: worktree`, prompted: read `~/.claude/skills/implement-relay/SKILL.md` and follow it for `#<head>` — plus the contract.
-- **Legs 2..n:** one background agent each, prompted: read `~/.claude/skills/relay/SKILL.md` and follow it for `#<prev> #<next>` — plus the contract. No worktree at launch: relay enters its own after the gate opens, branching from whatever the upstream leg actually landed.
+- **Head:** one background agent, prompted: read `~/.claude/skills/implement-relay/SKILL.md` and follow it for `#<head>` — plus the contract. No harness isolation — the leg creates its own worktree (contract clause 1): a self-created worktree is one the leg can also remove at cleanup; a harness-created one refuses to remove itself.
+- **Legs 2..n:** one background agent each, prompted: read `~/.claude/skills/relay/SKILL.md` and follow it for `#<prev> #<next>` — plus the contract. No worktree at launch: relay creates its own after the gate opens, branching from whatever the upstream leg actually landed.
 
 One ticket, one agent, its own worktree and PR — never two tickets through one agent, whatever it saves.
 
-## 3. Wait — one wake
+## 3. Wait — and pass each baton
 
-Arm one persistent Monitor watching the **last** ticket in the chain; its close is the whole chain done. Timeout: 10800s × number of legs, floor 43200.
+The legs' own tripwires are backup only: monitor events inside a background session are dropped or never emitted often enough that a chain relying on them stalls (both failure modes observed). The dispatcher's session-local Monitor delivers reliably — so the dispatcher passes every baton. Arm one persistent Monitor over **all** chain tickets. Timeout: 10800s × number of legs, floor 43200.
 
 ```bash
-start=$(date +%s); timeout=<seconds>
+start=$(date +%s); timeout=<seconds>; remaining="<n1> <n2> ... <nlast>"
 while :; do
-  s=$(gh issue view <last> --json state -q .state 2>/dev/null || echo RETRY)
-  [ "$s" = CLOSED ] && { echo "chain complete: #<last> closed"; exit 0; }
-  [ $(( $(date +%s) - start )) -ge "$timeout" ] && { echo "chain expired: #<last> still open"; exit 0; }
+  still=""
+  for t in $remaining; do
+    s=$(gh issue view "$t" --json state -q .state 2>/dev/null || echo OPEN)
+    if [ "$s" = CLOSED ]; then echo "ticket closed: #$t"; else still="$still $t"; fi
+  done
+  remaining=$still
+  [ -z "${remaining// /}" ] && { echo "chain complete"; exit 0; }
+  [ $(( $(date +%s) - start )) -ge "$timeout" ] && { echo "chain expired:$remaining still open"; exit 0; }
   sleep 120
 done
 ```
 
-Either line means proceed to the report — an expired chain reports what it has. Per-agent completion notifications arrive first and they are traps: on one, do nothing — no summary, no `TaskStop`, no peeking at PRs — and go back to idle. Two exceptions, both one-message repairs that keep the chain alive without reading any transcript:
+On each `ticket closed: #N` event: SendMessage the leg gated on #N — its gate is open, this message is its tripwire line, verify state itself and run. Duplicate wakes are safe (relay re-checks everything), so send without wondering whether the leg's own monitor got there first. `chain complete` or `chain expired` means proceed to the report — an expired chain reports what it has. Per-agent completion notifications arrive first and they are traps: on one, do nothing — no summary, no `TaskStop`, no peeking at PRs — and go back to idle. Two exceptions, both one-message repairs that keep the chain alive without reading any transcript:
 
 - **status `failed` / a watchdog stall** ("no progress") → SendMessage the same agent: name what killed it, tell it to check `git status` and its last commit first, then continue the leg. The resume costs the leg a few k tokens; a dead leg costs the whole chain.
 - **a leg that stopped while claiming to wait** (its result says "waiting", the notification says no live background children) → SendMessage: nothing exists to wake it; re-check the awaited state now and continue, arming a real watch if one is genuinely needed.
