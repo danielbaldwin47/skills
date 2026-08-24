@@ -19,7 +19,7 @@ tickets' states with `needs input:`, and leave the fix to the human. A
 grounded leg stays grounded; substituting another ticket is the one forbidden
 move.
 
-Preflight passed, check the gate once, immediately — already open means straight to step 2. Otherwise arm the tripwire and go idle: a Monitor (`persistent: true`) running the loop below. The shell does the waiting; the session wakes exactly once, on the line the loop emits. Never poll from the session itself — every model-side wake pays the whole accumulated context again just to find the gate shut. Idle means zero further tool calls until the tripwire's line arrives: no capped Bash sleep-loop "just to check" (a second poller defeats the first), and no pre-loading docs, specs, or tickets — all reading happens after the gate opens, where it cannot go stale and the wait has cost nothing.
+Preflight passed, check the gate once, immediately — already open means straight to step 2. Otherwise, take the base-independent reading first: the downstream ticket body, the spec and ADRs it cites, a test plan — none of it depends on the upstream diff, and done now it comes off the critical path for free. Code recon waits for the gate: the upstream leg is rewriting the very surfaces a map would describe, and a pre-gate map arrives stale. Then arm the tripwire and go idle: a Monitor (`persistent: true`) running the loop below. The shell does the waiting; the session wakes exactly once, on the line the loop emits. Never poll from the session itself — every model-side wake pays the whole accumulated context again just to find the gate shut. Idle means zero further tool calls until the tripwire's line arrives — a capped Bash sleep-loop "just to check" is a second poller that defeats the first.
 
 ```bash
 start=$(date +%s)
@@ -35,9 +35,9 @@ while :; do
 done
 ```
 
-`<expiry>`: 43200 (12h), unless the invocation names another. The expiry is wall-clock, independent of the interval. The loop emits a line on every terminal state, so silence always means still-waiting. Step 1 is complete when the preflight has passed and the tripwire's one line has been interpreted:
+`<expiry>`: 43200 (12h), unless the invocation names another — a dispatcher launching the tail of a long chain names more: nine-leg chains have already produced 4h gate waits, and expiry is measured from launch, not from the upstream's start. The expiry is wall-clock, independent of the interval. The loop emits a line on every terminal state, so silence always means still-waiting. Step 1 is complete when the preflight has passed and the tripwire's one line has been interpreted:
 
-- `gate open` — two `gh` calls before moving. First re-check the downstream ticket is still OPEN: hours have passed, and a closed downstream means the baton already passed — stop and report. Then check the upstream ticket's PR: merged, or open to stack on, means run your leg. Closed with no PR at all: stop and report the upstream state — never implement on a dead foundation.
+- `gate open` — two `gh` calls before moving. First re-check the downstream ticket is still OPEN: hours have passed, and a closed downstream means the baton already passed — stop and report. Then check the upstream ticket's PR: merged, or open to stack on, means run your leg — and the ticket's closing comment should link that PR (the leg's baton comment); a close with no PR behind it, or no baton comment, is a mis-close, not a baton: stop and report the upstream state — never implement on a dead foundation.
 - `gate dead` — stop and report the upstream state.
 - `gate expired` — stop and write `needs input:` with the upstream state — ticket status, last comment, PR status.
 
@@ -48,11 +48,11 @@ A dispatcher's gate-open message counts as the tripwire line — monitor deliver
 1. Create your own worktree: `git worktree add <repo-root>/.claude/worktrees/issue-<N> -b issue-<N> <base>` — never EnterWorktree (it fails from a pinned-cwd subagent), and a self-created worktree is one you can also remove at cleanup. The branch name is the one `~/.claude/skills/dispatch/leg-contract.md` dictates, so the dispatch tripwire and downstream legs can find your work.
 2. Pick the base: upstream PR merged → branch from the default branch. Unmerged → branch from the upstream PR's head, and set your PR's base to that branch (stacked PR).
 3. Read `~/.claude/skills/implement-relay/SKILL.md` and follow it for `<downstream>`.
-4. Push the branch; open a draft PR, noting the stacked base in the body if there is one. After `/code-review`, add the `Review:` verdict line to the PR body (leg-contract, clause 3).
+4. Push the branch; open a draft PR, noting the stacked base in the body if there is one. Run the review tail and add the `Review:` verdict line per leg-contract clause 3 — the reviewers' own `Verdict:` comments are what the merge gate cross-checks. Mark the PR ready (`gh pr ready`) before the close below: a draft is not a delivered PR.
 
 ## 3. Land, then pass the baton
 
-Complete = your PR is open, tests are green, review is done.
+Complete = your PR is open and marked ready, tests are green, review is done.
 
 - Complete, and the repo's CLAUDE.md grants **self-landing** → land your own PR per the grant's gates before closing the ticket. The grant is durable pre-authorization: merge without asking, background agent or not. A PR the gates hold stays open with a comment naming the held gate — the ticket still closes below, and the next leg stacks on your head branch.
 - No grant → leave the PR open; landing is the human's job downstream.
